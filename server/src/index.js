@@ -5,6 +5,7 @@ import pty from "node-pty";
 import fs from "fs/promises";
 import path from "path";
 import cors from "cors";
+import chokidar from "chokidar";
 
 const app = express();
 const server = http.createServer(app);
@@ -30,10 +31,20 @@ app.get("/files", async (req, res) => {
   return res.json({ tree: fileTree });
 });
 
+app.get("/files/content", async (req, res) => {
+  const path = req.query.path;
+  const content = await fs.readFile(`./user${path}`, "utf-8");
+  res.json({ content });
+});
+
 io.on("connection", (socket) => {
   console.log("Socket Connection stablished :" + socket.id);
   socket.on("terminal:write", (data) => {
     ptyProcess.write(data);
+  });
+
+  socket.on("file:change", async ({ path, content }) => {
+    await fs.writeFile(`./user${path}`, content);
   });
 });
 
@@ -61,3 +72,7 @@ async function generateFileTree(directory) {
   await buildTree(directory, tree);
   return tree;
 }
+
+chokidar.watch("./user").on("all", (event, path) => {
+  io.emit("file:refresh", path);
+});

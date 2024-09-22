@@ -27,9 +27,15 @@ const Terminal = () => {
       socketClinet.emit("terminal:write", data);
     });
 
-    socketClinet.on("terminal:data", (data) => {
+    function onTerminalWrite(data) {
       xterm.write(data);
-    });
+    }
+
+    socketClinet.on("terminal:data", onTerminalWrite);
+
+    // return () => {
+    //   socketClinet.off("terminal:data");
+    // };
   });
   return <div ref={divRef} className="w-screen"></div>;
 };
